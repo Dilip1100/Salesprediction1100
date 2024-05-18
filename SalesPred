@@ -1,0 +1,60 @@
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
+
+# Load the data from the CSV file into a DataFrame
+df = pd.read_csv('C:/Users/dilip/Downloads/Sales.csv')  # Adjust the file path
+
+# Try different date formats to handle potential inconsistencies
+try:
+  # Attempt format "%m-%d-%Y" (month-day-year)
+  df['Order Date'] = pd.to_datetime(df['Order Date'], format='%m-%d-%Y')
+except ValueError:
+  try:
+    # Attempt format "%d-%m-%Y" (day-month-year)
+    df['Order Date'] = pd.to_datetime(df['Order Date'], format='%d-%m-%Y')
+  except ValueError:
+    print("Error: Could not parse 'Order Date' column. Check date format in your data.")
+    exit()
+
+# Feature Engineering (assuming 'Profit' is the target variable):
+# Extract year from 'ORDERDATE'
+df['Year'] = df['Order Date'].dt.year
+
+# Separate features (X) and target variable (y)
+# Since we're omitting 'Sales', use only 'Year' as the feature
+X = df[['Year']]
+y = df['Profit']
+
+# Create a linear regression model
+model = LinearRegression()
+
+# Fit the model to the data for years 2014-2016 (assuming data covers a wider range)
+train_data = df[df['Year'].between(2014, 2016)]  # Adjust years if needed
+X_train = train_data[['Year']]  # Ensure 'Year' is included
+y_train = train_data['Profit']
+model.fit(X_train, y_train)
+
+# Make predictions for 2017-2020 (assuming 'Year' is within data range)
+future_years = pd.DataFrame({'Year': range(2017, 2021)})  # Generates years 2017-2020
+future_sales = model.predict(future_years[['Year']].values.reshape(-1, 1))  # Only 'Year' for prediction
+
+# Plot the historical data and forecasted profit (line chart)
+plt.figure(figsize=(10, 6))
+plt.scatter(df['Year'], df['Profit'], color='blue', label='Historical Profit')  # Optional for scatter plot
+plt.plot(future_years['Year'], future_sales, color='red', linestyle='--', label='Forecasted Profit')
+plt.title('Profit Forecasting (without Sales)')  # Update title to reflect missing feature
+plt.xlabel('Year')
+plt.ylabel('Profit')
+plt.legend()
+plt.grid(True)
+
+# Save the plot as an image (replace 'profit_forecast.png' with your desired filename)
+plt.savefig('profit_forecast.png')  # Saves the plot to the current directory
+plt.show()  # Optional: Display the plot before saving
+
+# Write forecasted profit year wise to a CSV file (replace 'forecasted_profit.csv' with your desired filename)
+forecast_data = pd.DataFrame({'Year': future_years['Year'], 'Forecasted Profit': future_sales.flatten()})
+forecast_data.to_csv('forecasted_profit.csv', index=False)
+
+print("Profit forecasting completed (without Sales). Results saved.")
